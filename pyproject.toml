@@ -14,3 +14,46 @@ dependencies = [
 
 [dependency-groups]
 dev = []
+
+[tool.ruff]
+# Keep formatting deterministic and readable.
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = [
+    "F",        # Pyflakes rules
+    "W",        # PyCodeStyle warnings
+    "E",        # PyCodeStyle errors
+    "I",        # Sort imports properly
+    "UP",       # Warn if certain things can changed due to newer Python versions
+    "C4",       # Catch incorrect use of comprehensions, dict, list, etc
+    "FA",       # Enforce from __future__ import annotations
+    "ISC",      # Good use of string concatenation
+    "ICN",      # Use common import conventions
+    "RET",      # Good return practices
+    "SIM",      # Common simplification rules
+    "TID",      # Some good import practices
+    "TC",       # Enforce importing certain types in a TYPE_CHECKING block
+    "PTH",      # Use pathlib instead of os.path
+    "TD",       # Be diligent with TODO comments
+    "NPY",      # Some numpy-specific things
+]
+ignore = [
+    # Let the formatter manage wrapping; avoid noisy long-line warnings
+    "E501",
+]
+unfixable = []
+fixable = ["ALL"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+
+
+[tool.ruff.format]
+# Use Ruff as the code formatter (Black-like)
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
