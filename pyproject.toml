@@ -1,0 +1,16 @@
+[project]
+name = "eeg-challenge"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "eegdash>=0.3.8",
+    "mne>=1.10.1",
+    "pathlib>=1.0.1",
+    "torch>=2.8.0",
+    "torchinfo>=1.8.0",
+]
+
+[dependency-groups]
+dev = []
