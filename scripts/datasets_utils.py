@@ -44,10 +44,14 @@ def merge_datasets_by_release(release_list, task, data_dir):
                     "p_factor",
                 ],
                 cache_dir=data_dir,
-                query={"subject": {"$not": "NDARAR935TGZ"}},
+                #query={"subject": {"$not": "NDARAR935TGZ"}},
             )
         except KeyError as e:
             print(f"Error loading {release} {task} because is not available")
+            print(e)
+            continue
+        except AssertionError as e:
+            print(f"Error loading {release}-{task} because is not available")
             print(e)
             continue
 

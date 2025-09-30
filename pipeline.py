@@ -27,13 +27,12 @@ from scripts.datasets_utils import custom_keep_only_recordings_with, merge_datas
 from scripts.relative_positioning_dataset import RelativePositioningDataset
 
 # %% SET CONSTANTS
-
 SFREQ = 100
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-release_list = ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11"]
+release_list = ["R1", "R2", ] # "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11"
 
 DICT_TASKS = {
     "contrastChangeDetection": [
@@ -64,7 +63,7 @@ DICT_TASKS = {
 final_datasets = []
 
 task_list = list(DICT_TASKS.keys())
-
+print(task_list)
 for task_key in task_list:
     print(f"Loading {task_key} datasets")
     print("--------------------------------")
@@ -76,24 +75,44 @@ for task_key in task_list:
 
     final_datasets.append(task_current_dataset)
 
-final_datasets = BaseConcatDataset([ds for ds in final_datasets if ds.description.ntimes >= 30])
+final_datasets = BaseConcatDataset(final_datasets)
 
+final_datasets = BaseConcatDataset([ds for ds in final_datasets.datasets if ds.description.ntimes >= 30])
 
-# print("All individual task datasets loaded")
-# sub_rm = [
-#     "NDARWV769JM7",
-#     "NDARME789TD2",
-#     "NDARUA442ZVF",
-#     "NDARJP304NK1",
-#     "NDARTY128YLU",
-#     "NDARDW550GU6",
-#     "NDARLD243KRE",
-#     "NDARUJ292JXV",
-#     "NDARBA381JGH",
-# ]
+print("All individual task datasets loaded")
+sub_rm = [
+    "NDARWV769JM7",
+    "NDARME789TD2",
+    "NDARUA442ZVF",
+    "NDARJP304NK1",
+    "NDARTY128YLU",
+    "NDARDW550GU6",
+    "NDARLD243KRE",
+    "NDARUJ292JXV",
+    "NDARBA381JGH",
+]
 
-# print(all_datasets.description)
 print(final_datasets.datasets[25].raw.duration)
+
+# %% CROP DATA
+
+# Filter out recordings that: are too short, does not have p-factor,
+# have not 129 channels and are from subjects in sub_rm list
+final_datasets = BaseConcatDataset(
+    [
+        ds
+        for ds in final_datasets.datasets
+        if not ds.description.subject in sub_rm
+        and ds.raw.n_times >= 4 * SFREQ
+        and len(ds.raw.ch_names) == 129
+        and not math.isnan(ds.description["p_factor"])
+    ]
+)
+
+preprocessors = [
+    Preprocessor(crop_eeg, apply_on_array=False)  
+]
+preprocess(final_datasets, preprocessors, n_jobs=1)
 
 # %% LOW-PASS FILTER
 # Only frequencies below high_cut_hz will be kept.
@@ -102,29 +121,10 @@ high_cut_hz = 30  # Frequencies above 30 Hz often contain muscle artifacts (EMG)
 preprocessors = [
     Preprocessor("filter", l_freq=None, h_freq=high_cut_hz, n_jobs=-1),
 ]
-
 preprocess(final_datasets, preprocessors)
-# %% CROP DATA
-
-# Filter out recordings that: are too short, does not have p-factor,
-# have not 129 channels, are from subjects in sub_rm list, and apply crop_eeg function
-all_datasets = BaseConcatDataset(
-    [
-        ds
-        for ds in all_datasets.datasets
-        if (
-            ds.description.subject not in sub_rm
-            and ds.raw.n_times >= 4 * SFREQ
-            and len(ds.raw.ch_names) == 129
-            and not math.isnan(ds.description["p_factor"])
-            and (crop_eeg(ds.raw) or True)  # exect the crop, but does not matter the return
-        )
-    ]
-)
-
-# Create 4-seconds windows with 2-seconds stride
+# %% Create 4-seconds windows with 2-seconds stride
 windows_ds = create_fixed_length_windows(
-    all_datasets,
+    final_datasets,
     window_size_samples=4 * SFREQ,
     window_stride_samples=2 * SFREQ,
     drop_last_window=True,
@@ -133,7 +133,7 @@ windows_ds = create_fixed_length_windows(
 # Preprocess the windows by applying channel-wise z-score normalization.
 preprocess(windows_ds, [Preprocessor(standard_scale, channel_wise=True)])
 
-print(all_datasets.datasets[25].raw.duration)
+
 # %% APPLY RELATIVE POSITIONING
 ssl_windows_ds = RelativePositioningDataset(windows_ds.datasets)
 # %%  RELATIVE POSITIONING SAMPLER
@@ -151,3 +151,5 @@ ssl_sampler = RelativePositioningSampler(
     same_rec_neg=False,  # Negative recordings can be from different recordings
     random_state=random_state,
 )
+
+# %%
