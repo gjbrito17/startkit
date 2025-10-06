@@ -1,11 +1,11 @@
 import logging
-
 from braindecode.datasets.base import BaseConcatDataset
 from eegdash import EEGChallengeDataset
 import numpy as np
-
+import mne
 
 def custom_keep_only_recordings_with(desc, concat_ds):
+
     if isinstance(desc, str):
         desc = [desc]  # lo convertimos a lista para unificar
 
@@ -20,7 +20,7 @@ def custom_keep_only_recordings_with(desc, concat_ds):
     return BaseConcatDataset(kept)
 
 
-def merge_datasets_by_release(release_list, task, data_dir):
+def merge_datasets_by_release(release_list, task :str, data_dir):
     all_datasets = None
 
     for release in release_list:
@@ -65,3 +65,12 @@ def merge_datasets_by_release(release_list, task, data_dir):
                 print(e)
 
     return all_datasets
+
+def delete_Cz(raw: mne.io.Raw) -> None:
+    """Remove channel Cz from an MNE Raw object if it exists."""
+    try:
+        raw.drop_channels(['Cz'])
+    except ValueError as e:
+        print(e)
+
+

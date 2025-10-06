@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=2.2.6",
     "pathlib>=1.0.1",
     "torch>=2.8.0",
+    "torch-geometric>=2.6.1",
     "torchinfo>=1.8.0",
 ]
 

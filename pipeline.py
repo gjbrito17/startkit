@@ -3,8 +3,6 @@
 import math
 import os
 
-## Load each individual task dataset and keep only recordings that contains the start annotations.
-## Those with no stop annotation will be manage by the crop_eeg function.
 from pathlib import Path
 import random
 
@@ -23,7 +21,7 @@ from torch.utils.data import DataLoader
 
 from scripts.crop_eeg import crop_eeg
 from scripts.dataset_wrapper import DatasetWrapper
-from scripts.datasets_utils import custom_keep_only_recordings_with, merge_datasets_by_release
+from scripts.datasets_utils import custom_keep_only_recordings_with, merge_datasets_by_release, delete_Cz
 from scripts.relative_positioning_dataset import RelativePositioningDataset
 
 # %% SET CONSTANTS
@@ -32,7 +30,7 @@ SFREQ = 100
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-release_list = ["R1", "R2", ] # "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11"
+release_list = ["R10", "R11"] # "R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11"
 
 DICT_TASKS = {
     "contrastChangeDetection": [
@@ -41,27 +39,26 @@ DICT_TASKS = {
         "contrastChangeB3_start",
         "contrastChangeB4_start",
     ],
-    "DespicableMe": ["video_start"],
-    "DiaryOfAWimpyKid": ["video_start"],
-    "FunwithFractals": ["video_start"],
-    "ThePresent": ["video_start"],
-    "RestingState": ["resting_start"],
-    "seqLearning8target": ["seqLearning_start"],
-    "seqLearning6target": ["seqLearning_start"],
-    "symbolSearch": ["symbolSearch_start"],
-    "surroundSupp": [
-        "surroundSuppB1_start",
-        "surroundSuppB2_start",
-        "surroundSuppB3_start",
-        "surroundSuppB4_start",
-        "surroundSuppB5_start",
-    ],
+    # "DespicableMe": ["video_start"],
+    # "DiaryOfAWimpyKid": ["video_start"],
+    # "FunwithFractals": ["video_start"],
+    # "ThePresent": ["video_start"],
+    # "RestingState": ["resting_start"],
+    # "seqLearning8target": ["seqLearning_start"],
+    # "seqLearning6target": ["seqLearning_start"],
+    # "symbolSearch": ["symbolSearch_start"],
+    # "surroundSupp": [
+    #     "surroundSuppB1_start",
+    #     "surroundSuppB2_start",
+    #     "surroundSuppB3_start",
+    #     "surroundSuppB4_start",
+    #     "surroundSuppB5_start",
+    # ],
 }
 
 # %% PREPARE DATASETS
 
 final_datasets = []
-
 task_list = list(DICT_TASKS.keys())
 print(task_list)
 for task_key in task_list:
@@ -72,7 +69,6 @@ for task_key in task_list:
     task_current_dataset = custom_keep_only_recordings_with(
         DICT_TASKS[task_key], task_current_dataset
     )
-
     final_datasets.append(task_current_dataset)
 
 final_datasets = BaseConcatDataset(final_datasets)
@@ -94,6 +90,18 @@ sub_rm = [
 
 print(final_datasets.datasets[25].raw.duration)
 
+# %%
+import mne
+raw = final_datasets.datasets[50].raw
+montage = mne.channels.make_standard_montage("GSN-HydroCel-129")
+raw.set_montage(montage)
+
+# Then try plotting again
+raw.plot_sensors(ch_type="eeg", show_names=True)
+positions = montage.get_positions()["ch_pos"]
+positions
+
+
 # %% CROP DATA
 
 # Filter out recordings that: are too short, does not have p-factor,
@@ -110,7 +118,7 @@ final_datasets = BaseConcatDataset(
 )
 
 preprocessors = [
-    Preprocessor(crop_eeg, apply_on_array=False)  
+    Preprocessor(crop_eeg, apply_on_array=False), Preprocessor(fn=delete_Cz, apply_on_array=False)  
 ]
 preprocess(final_datasets, preprocessors, n_jobs=1)
 
